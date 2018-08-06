@@ -1,6 +1,10 @@
 package consumption.observer;
 
 import consumption.chart.BarChartController;
+import consumption.typefilter.TypeFilterValue;
+import javafx.application.Platform;
+import javafx.scene.chart.BarChart;
+import javafx.scene.layout.GridPane;
 
 import java.io.File;
 
@@ -8,11 +12,15 @@ public class FileObservable implements Runnable {
 
     private Long lastModified;
     private File file;
-
+    private GridPane grid;
     private BarChartController barChartController;
 
     public void setBarChartController(BarChartController barChartController) {
         this.barChartController = barChartController;
+    }
+
+    public void setGrid(GridPane grid) {
+        this.grid = grid;
     }
 
     public File getFile() {
@@ -38,22 +46,21 @@ public class FileObservable implements Runnable {
 
     @Override
     public void run() {
-        // Uncomment to run task
-//        while (true) {
-//            if (this.file != null) {
-//                System.out.println(file.lastModified());
-//                if (this.lastModified != null && file.lastModified() != this.lastModified) {
-//                    System.out.println("Reached");
-//                    Grid.getInstance().getChildren().remove(BarChartQueue.getInstance().poll());
-//                    BarChart<String, Number> newBarChart = this.barChartController.getBarChart(TYPE_ALL);
-//                    Grid.getInstance().add(newBarChart, 1, 1);
-//                    BarChartQueue.getInstance().add(newBarChart);
-//                }
-//                this.lastModified = file.lastModified();
-//
-//            } else {
-//                System.out.println("File not set!");
-//            }
-//        }
+        while (true) {
+            if (this.file != null) {
+                if (this.lastModified != null && file.lastModified() != this.lastModified) {
+                    System.out.println("Updating chart");
+                    Platform.runLater(() -> {
+                        this.grid.getChildren().remove(BarChartQueue.getInstance().poll());
+                        BarChart<String, Number> newBarChart = this.barChartController.getBarChart(TypeFilterValue.getInstance().getValue());
+                        this.grid.add(newBarChart, 1, 1);
+                        BarChartQueue.getInstance().add(newBarChart);
+                    });
+                }
+                this.lastModified = file.lastModified();
+            } else {
+                System.out.println("File not set!");
+            }
+        }
     }
 }

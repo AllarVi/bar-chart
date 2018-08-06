@@ -4,8 +4,8 @@ import consumption.arguments.Arguments;
 import consumption.chart.BarChartController;
 import consumption.observer.BarChartQueue;
 import consumption.observer.FileObservable;
-import consumption.observer.Grid;
 import consumption.typefilter.TypeFilterController;
+import consumption.typefilter.TypeFilterValue;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
@@ -37,8 +37,8 @@ public class Main extends Application {
         primaryStage.setTitle(APP_TITLE);
         Scene scene = new Scene(new Group());
 
-        GridPane grid = Grid.getInstance();
-        initFileObserver();
+        GridPane grid = new GridPane();
+        initFileObserver(grid);
 
         Insets insets = new Insets(10, 10, 10, 10);
         grid.setPadding(insets);
@@ -46,7 +46,11 @@ public class Main extends Application {
         grid.setHgap(10);
 
         ComboBox<String> typeFilter = typeFilterController.getTypeFilter();
-        BarChart<String, Number> barChart = barChartController.getBarChart(typeFilter.valueProperty().getValue());
+
+        String firstTypeFilterValue = typeFilter.valueProperty().getValue();
+        TypeFilterValue.getInstance().setValue(firstTypeFilterValue);
+
+        BarChart<String, Number> barChart = barChartController.getBarChart(firstTypeFilterValue);
         BarChartQueue.getInstance().add(barChart);
 
         typeFilter.valueProperty().addListener(
@@ -56,6 +60,7 @@ public class Main extends Application {
                     }
 
                     grid.getChildren().remove(BarChartQueue.getInstance().poll());
+                    TypeFilterValue.getInstance().setValue(newValue);
                     BarChart<String, Number> newBarChart = barChartController.getBarChart(newValue);
                     grid.add(newBarChart, 1, 1);
                     BarChartQueue.getInstance().add(newBarChart);
@@ -72,11 +77,12 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-    private void initFileObserver() {
+    private void initFileObserver(GridPane grid) {
         List<Thread> threads = new ArrayList<>();
 
         Runnable observeFileTask = FileObservable.getInstance();
         ((FileObservable) observeFileTask).setBarChartController(this.barChartController);
+        ((FileObservable) observeFileTask).setGrid(grid);
 
         Thread worker = new Thread(observeFileTask);
 
